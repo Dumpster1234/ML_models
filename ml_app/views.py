@@ -33,31 +33,76 @@ def upload_dataset(request):
         form = DatasetUploadForm()
     return render(request, 'ml_app/upload.html', {'form': form})
 
+# ... [imports remain unchanged] ...
+
 def model_development(request, dataset_id):
     try:
         dataset = Dataset.objects.get(id=dataset_id)
         df = pd.read_csv(dataset.file.path)
         columns = df.columns.tolist()
-        
-        # Auto-detect target column
-        target_names = ['target', 'label', 'class', 'y']
-        target_column = None
-        for col in columns:
-            if col.lower() in target_names:
-                target_column = col
-                break
-        if not target_column:
-            target_column = columns[-1]  # Default to last column
-        
-        # Determine target type
-        unique_values = df[target_column].dropna().unique()
-        target_type = 'classification' if df[target_column].dtype in [np.int32, np.int64] or len(unique_values) <= 10 else 'regression'
-        print("Detected Target:", target_column, "Type:", target_type)  # Debug
-        
-        # Store target in session
-        request.session['target_column'] = target_column
-        request.session['target_type'] = target_type
-    except (Dataset.DoesNotExist, FileNotFoundError):
+
+        selected_model = request.GET.get('model_type', '')
+        target_column = None  # 🔧 CHANGED: Don't pre-select a target column
+        target_type = None
+
+        if request.method == 'POST':
+            target_column = request.POST.get('target_column')  # 🔧 CHANGED
+            selected_model = request.POST.get('model_type', selected_model)
+
+            if not target_column or target_column not in df.columns:
+                return render(request, 'ml_app/model_development.html', {
+                    'columns': columns,
+                    'dataset_id': dataset_id,
+                    'selected_model': selected_model,
+                    'error': 'Please select a valid target column.'
+                })
+
+            # 🔧 CHANGED: Dynamically determine classification vs regression
+            unique_values = df[target_column].dropna().unique()
+            if df[target_column].dtype in [np.int64, np.float64] and len(unique_values) > 10:
+                target_type = 'regression'
+            else:
+                target_type = 'classification'
+
+            if not selected_model:
+                return render(request, 'ml_app/model_development.html', {
+                    'columns': columns,
+                    'dataset_id': dataset_id,
+                    'target_column': target_column,
+                    'target_type': target_type,
+                    'error': 'Please select a model from the sidebar.'
+                })
+
+            # 🔧 CHANGED: Enforce model-type compatibility
+            if (selected_model.startswith('classification') and target_type != 'classification') or \
+               (selected_model.startswith('regression') and target_type != 'regression'):
+                return render(request, 'ml_app/model_development.html', {
+                    'columns': columns,
+                    'dataset_id': dataset_id,
+                    'selected_model': selected_model,
+                    'target_column': target_column,
+                    'target_type': target_type,
+                    'error': f'Model "{selected_model}" is not valid for a {target_type} target.'
+                })
+
+            # 🔧 CHANGED: Save user choices to session
+            request.session['model_type'] = selected_model
+            request.session['target_column'] = target_column
+            request.session['target_type'] = target_type
+            request.session['dataset_id'] = dataset_id
+            return redirect('results')
+
+        # GET request — only show the form
+        return render(request, 'ml_app/model_development.html', {
+            'columns': columns,
+            'dataset_id': dataset_id,
+            'selected_model': selected_model,
+            'target_column': target_column,
+            'target_type': target_type,
+        })
+
+    except (Dataset.DoesNotExist, FileNotFoundError) as e:
+        print("Error loading dataset:", str(e))
         return redirect('upload_dataset')
     
     selected_model = request.GET.get('model_type', '')
