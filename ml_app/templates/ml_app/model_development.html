@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Development</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="d-flex">
+       <!-- Sidebar -->
+<div class="bg-light border-right" id="sidebar-wrapper">
+    <div class="sidebar-heading bg-primary text-white">Model Selection</div>
+    <div class="list-group list-group-flush">
+
+        <!-- Classification Models -->
+        <div class="fw-bold mt-3 px-3 text-secondary">Classification</div>
+        <a href="?model_type=classification_logistic" class="list-group-item list-group-item-action {% if selected_model == 'classification_logistic' %}active{% endif %}">Logistic Regression</a>
+        <a href="?model_type=classification_rf" class="list-group-item list-group-item-action {% if selected_model == 'classification_rf' %}active{% endif %}">Random Forest Classifier</a>
+        <a href="?model_type=classification_svm" class="list-group-item list-group-item-action {% if selected_model == 'classification_svm' %}active{% endif %}">Support Vector Machine</a>
+        <!-- <a href="?model_type=classification_nn" class="list-group-item list-group-item-action {% if selected_model == 'classification_nn' %}active{% endif %}">Neural Network</a> -->
+        <a href="?model_type=classification_xgb" class="list-group-item list-group-item-action {% if selected_model == 'classification_xgb' %}active{% endif %}">XGBoost</a>
+        <a href="?model_type=classification_nb" class="list-group-item list-group-item-action {% if selected_model == 'classification_nb' %}active{% endif %}">Naive Bayes</a>
+        <a href="?model_type=classification_ada" class="list-group-item list-group-item-action {% if selected_model == 'classification_ada' %}active{% endif %}">AdaBoost</a>
+        <a href="?model_type=classification_lgbm" class="list-group-item list-group-item-action {% if selected_model == 'classification_lgbm' %}active{% endif %}">LightGBM</a>
+        <a href="?model_type=classification_catboost" class="list-group-item list-group-item-action {% if selected_model == 'classification_catboost' %}active{% endif %}">CatBoost</a>
+
+        <!-- Regression Models -->
+        <div class="fw-bold mt-3 px-3 text-secondary">Regression</div>
+        <a href="?model_type=regression_linear" class="list-group-item list-group-item-action {% if selected_model == 'regression_linear' %}active{% endif %}">Linear Regression</a>
+        <a href="?model_type=regression_lasso" class="list-group-item list-group-item-action {% if selected_model == 'regression_lasso' %}active{% endif %}">Lasso Regression</a>
+        <a href="?model_type=regression_ridge" class="list-group-item list-group-item-action {% if selected_model == 'regression_ridge' %}active{% endif %}">Ridge Regression</a>
+        <a href="?model_type=regression_dt" class="list-group-item list-group-item-action {% if selected_model == 'regression_dt' %}active{% endif %}">Decision Tree Regressor</a>
+        <a href="?model_type=regression_gb" class="list-group-item list-group-item-action {% if selected_model == 'regression_gb' %}active{% endif %}">Gradient Boosting</a>
+
+        <!-- Time Series Models -->
+        <div class="fw-bold mt-3 px-3 text-secondary">Time Series</div>
+        <a href="?model_type=time_series_ridge" class="list-group-item list-group-item-action {% if selected_model == 'time_series_ridge' %}active{% endif %}">Time Series - Ridge</a>
+
+    </div>
+</div>
+
+        <!-- Main Content -->
+        <div class="container-fluid p-4">
+            <h1 class="text-center mb-4" style="color: #ffc107;">Model Development - {{ selected_model|title }}</h1>
+            {% if not selected_model %}
+                <div class="alert alert-info">
+                    Please select a model from the sidebar to train.
+                </div>
+            {% else %}
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="model_type" value="{{ selected_model }}">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h3>Configure Model</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+    <label for="target_column" class="form-label">Select Target Column</label>
+    <select name="target_column" id="target_column" class="form-select" required>
+        {% for col in columns %}
+            <option value="{{ col }}" {% if col == target_column %}selected{% endif %}>{{ col }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+                            {% if error %}
+                                <div class="alert alert-danger">
+                                    {{ error }}
+                                </div>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary mt-3">Train Model</button>
+                        </div>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Selected model:', '{{ selected_model }}', 'Target column:', '{{ target_column }}', 'Target type:', '{{ target_type }}'); // Debug
+        });
+    </script>
+</body>
+</html>
